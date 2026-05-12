@@ -12,6 +12,17 @@ const MyBookingsView = () => {
     setBookings(getBookings());
   }, []);
 
+  const getPhysician = (id: number) =>
+    physicians.find((physician) => physician.id === id);
+
+  const getSlot = (id: number) =>
+    appointmentSlots.find((slot) => slot.id === id);
+
+  const getSlotDate = (slotId: number) => {
+    const slot = getSlot(slotId);
+    return slot ? new Date(slot.time).getTime() : Infinity;
+  };
+
   const normalizedSearch = emailSearch.trim().toLowerCase();
 
   const filteredBookings = (
@@ -20,10 +31,12 @@ const MyBookingsView = () => {
           booking.email.toLowerCase().includes(normalizedSearch)
         )
       : bookings
-  ).sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  ).sort((a, b) => {
+    if (a.status === "cancelled" && b.status !== "cancelled") return 1;
+    if (a.status !== "cancelled" && b.status === "cancelled") return -1;
+
+    return getSlotDate(a.slotId) - getSlotDate(b.slotId);
+  });
 
   const cancelBooking = (bookingId: number) => {
     const updatedBookings = bookings.map((booking) =>
@@ -35,12 +48,6 @@ const MyBookingsView = () => {
     setBookings(updatedBookings);
     saveBookings(updatedBookings);
   };
-
-  const getPhysician = (id: number) =>
-    physicians.find((physician) => physician.id === id);
-
-  const getSlot = (id: number) =>
-    appointmentSlots.find((slot) => slot.id === id);
 
   return (
     <section>
@@ -66,63 +73,63 @@ const MyBookingsView = () => {
       />
 
       {filteredBookings.length === 0 ? (
-      <div className="rounded-2xl border bg-white p-8 text-center shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">
-          No appointments found
-        </h2>
-        <p className="mt-2 text-slate-600">
-          Try searching with the full email used during booking.
-        </p>
-      </div>
-    ) : (
-      <div className="grid gap-4">
-        {filteredBookings.map((booking) => {
-          const physician = getPhysician(booking.physicianId);
-          const slot = getSlot(booking.slotId);
+        <div className="rounded-2xl border bg-white p-8 text-center shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-900">
+            No appointments found
+          </h2>
+          <p className="mt-2 text-slate-600">
+            Try searching with the full email used during booking.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredBookings.map((booking) => {
+            const physician = getPhysician(booking.physicianId);
+            const slot = getSlot(booking.slotId);
 
-          return (
-            <div
-              key={booking.id}
-              className="rounded-2xl border bg-white p-5 shadow-sm"
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">
-                    {physician?.name ?? "Unknown physician"}
-                  </h2>
-                  <p className="text-slate-600">
-                    {physician?.specialty ?? "Unknown specialty"}
+            return (
+              <div
+                key={booking.id}
+                className="rounded-2xl border bg-white p-5 shadow-sm"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      {physician?.name ?? "Unknown physician"}
+                    </h2>
+                    <p className="text-slate-600">
+                      {physician?.specialty ?? "Unknown specialty"}
+                    </p>
+                  </div>
+
+                  <StatusBadge status={booking.status} />
+                </div>
+
+                <div className="mt-4 grid gap-2 text-sm text-slate-700">
+                  <p>
+                    <strong>Patient:</strong> {booking.patientName}
+                  </p>
+                  <p>
+                    <strong>Time:</strong> {slot?.time ?? "Unknown time"}
+                  </p>
+                  <p>
+                    <strong>Reason:</strong> {booking.reason}
                   </p>
                 </div>
 
-                <StatusBadge status={booking.status} />
+                {booking.status !== "cancelled" && (
+                  <button
+                    onClick={() => cancelBooking(booking.id)}
+                    className="mt-4 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+                  >
+                    Cancel appointment
+                  </button>
+                )}
               </div>
-
-              <div className="mt-4 grid gap-2 text-sm text-slate-700">
-                <p>
-                  <strong>Patient:</strong> {booking.patientName}
-                </p>
-                <p>
-                  <strong>Time:</strong> {slot?.time ?? "Unknown time"}
-                </p>
-                <p>
-                  <strong>Reason:</strong> {booking.reason}
-                </p>
-              </div>
-
-              {booking.status !== "cancelled" && (
-                <button
-                  onClick={() => cancelBooking(booking.id)}
-                  className="mt-4 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
-                >
-                  Cancel appointment
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    )}
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 };
