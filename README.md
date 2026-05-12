@@ -18,8 +18,7 @@ A lightweight healthcare appointment booking application built with React, TypeS
 ### 1. Clone the repository
 
 ```bash
-git clone <your-github-repo-url>
-cd <project-folder>
+git clone https://github.com/amishanotaney2003/veroscribe-health-booking.git
 ```
 
 ### 2. Install dependencies
